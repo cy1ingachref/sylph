@@ -1,0 +1,10 @@
+README.md
+pyproject.toml
+sylph/__init__.py
+sylph/safety.py
+sylph.egg-info/PKG-INFO
+sylph.egg-info/SOURCES.txt
+sylph.egg-info/dependency_links.txt
+sylph.egg-info/requires.txt
+sylph.egg-info/top_level.txt
+tests/test_safety.py
