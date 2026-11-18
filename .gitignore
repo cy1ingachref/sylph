@@ -9,6 +9,11 @@ venv/
 .DS_Store
 Thumbs.db
 
+# Build artifacts from editable installs / packaging
+*.egg-info/
+build/
+dist/
+
 # Model weights / datasets are large — track with Git LFS if needed
 *.pt
 *.onnx
