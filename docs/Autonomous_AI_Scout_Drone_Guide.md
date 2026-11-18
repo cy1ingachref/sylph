@@ -169,10 +169,18 @@ Always test the failsafe thoroughly in a safe open area.
 - [ ] Stream and save images with GPS tags
 - [ ] Train and deploy a lightweight disease detection model onboard
 - [ ] Verify detections are correctly geotagged
+- [ ] Build phone / Jetson app that diagnoses a leaf from a photo **offline**
+      (reuse the quantized on-device model; no network needed in the field)
 
 ### Phase 3 – Full Mission Autonomy (2–3 months)
 - [ ] Implement lawnmower / grid scouting patterns
 - [ ] Create high-level order interface (app or simple commands)
+- [ ] Add speech recognition for high-level commands (e.g. "scout the north field")
+      with a wake word, on-device or companion-computer STT, and a confirm/fail-safe
+      step before any arming or movement
+- [ ] Publish a live map of disease detections that updates as the drone flies:
+      stream each geotagged detection over MQTT/MAVLink to the ground station and
+      plot it incrementally (new markers appear in near real time, not just post-flight)
 - [ ] Add battery-aware mission planning (abort early if needed)
 - [ ] Basic terrain following / height holding
 

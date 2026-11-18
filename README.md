@@ -26,8 +26,12 @@ Flight Controller           (stabilization, GPS, RTH, failsafes)
 
 - **Phase 0** — Foundations & safety: assembly, firmware, manual flight, failsafe tests.
 - **Phase 1** — Autonomous flight: waypoints, automatic RTL, MAVLink link.
-- **Phase 2** — Vision pipeline: downward camera, geotagged images, disease detection model.
-- **Phase 3** — Full mission autonomy: grid scouting, order interface, battery-aware planning.
+- **Phase 2** — Vision pipeline: downward camera, geotagged images, disease detection model,
+  plus an offline phone/Jetson app that diagnoses leaves from a photo using the same
+  on-device model (no network required in the field).
+- **Phase 3** — Full mission autonomy: grid scouting, speech recognition with high-level
+  commands (e.g. "scout the north field"), a live map of disease detections that updates
+  in flight as each geotagged detection arrives, battery-aware planning.
 - **Phase 4** — Field ready: real data, reporting, better sensors, optimization.
 
 See the [full guide](docs/Autonomous_AI_Scout_Drone_Guide.md) for hardware,
