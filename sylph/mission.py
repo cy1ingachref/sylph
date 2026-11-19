@@ -19,6 +19,7 @@ __all__ = [
     "CommandInterpreter",
     "PendingCommand",
     "lawnmower_pattern",
+    "meters_per_degree_lon",
     "LiveDetectionMap",
     "plan_mission",
     "MissionPlan",
@@ -142,6 +143,14 @@ class CommandInterpreter:
         return True
 
 
+def meters_per_degree_lon(latitude: float) -> float:
+    """Metres per degree longitude at a given latitude (WGS84 approximation)."""
+    from math import cos, radians
+
+    lat = max(-89.9, min(89.9, latitude))
+    return 111_320.0 * cos(radians(lat))
+
+
 def lawnmower_pattern(
     center_lat: float,
     center_lon: float,
@@ -150,28 +159,40 @@ def lawnmower_pattern(
     height_m: float,
     spacing_m: float,
     altitude_m: float,
+    heading_deg: float = 0.0,
 ) -> list[Waypoint]:
     """Generate a boustrophedon (lawnmower) survey grid of waypoints.
 
     ``width_m`` is east-west extent, ``height_m`` north-south. Lines are
-    spaced ``spacing_m`` apart; altitude is constant. Simplified flat-earth
-    conversion is adequate for small fields (< few km).
+    spaced ``spacing_m`` apart; altitude is constant. Uses a LOCAL TANGENT
+    PLANE (ENU) approximation: metres north -> latitude via 111,320 m/deg,
+    metres east -> longitude via 111,320*cos(latitude) m/deg. Valid for small
+    fields (a few km) away from poles; for larger areas use a projected CRS.
+
+    ``heading_deg`` rotates the grid in the local ENU plane (0 = north-up).
     """
+    from math import cos, radians, sin
+
     if spacing_m <= 0 or width_m <= 0 or height_m <= 0:
         raise ValueError("width, height and spacing must be positive")
     m_per_deg_lat = 111_320.0
-    m_per_deg_lon = 111_320.0  # approximation at mid latitudes
+    m_per_deg_lon = meters_per_degree_lon(center_lat)
 
     rows = max(1, int(height_m // spacing_m) + 1)
     points: list[Waypoint] = []
+    h = radians(heading_deg)
     for i in range(rows):
-        north_offset = -height_m / 2 + i * spacing_m
-        lat = center_lat + north_offset / m_per_deg_lat
-        left = center_lon - (width_m / 2) / m_per_deg_lon
-        right = center_lon + (width_m / 2) / m_per_deg_lon
-        pair = [(lat, left), (lat, right)] if i % 2 == 0 else [(lat, right), (lat, left)]
-        for plat, plon in pair:
-            points.append(Waypoint(plat, plon, altitude_m))
+        north = -height_m / 2 + i * spacing_m
+        east_pair = (-width_m / 2, width_m / 2)
+        if i % 2 == 1:  # boustrophedon: alternate travel direction each row
+            east_pair = east_pair[::-1]
+        for east in east_pair:
+            # rotate (east, north) by heading
+            e2 = east * cos(h) - north * sin(h)
+            n2 = east * sin(h) + north * cos(h)
+            lat = center_lat + n2 / m_per_deg_lat
+            lon = center_lon + e2 / m_per_deg_lon
+            points.append(Waypoint(lat, lon, altitude_m))
     return points
 
 
