@@ -20,7 +20,9 @@ done, not what is planned.
 - **PR 1 (this baseline):** audit docs + verified findings.
 - **PR 2 (done):** safety mode policy (P0.1) and pending-command fixes (P0.2),
   18 new regression tests.
-- **PR 3:** latitude-aware survey geometry; route completeness; mission states.
+- **PR 3 (done):** latitude-aware survey geometry (local ENU, heading rotation,
+  tests at multiple latitudes), route completeness, mission state machine with
+  validated/logged transitions and abort priority. 12 new tests; 124 green.
 - **PR 4:** deterministic replay scenarios and event log.
 - **PR 5–7:** 3D demo scene, ground-station UI, browser tests.
 - **PR 8:** perception (real pixel-based detector) evaluation plan.

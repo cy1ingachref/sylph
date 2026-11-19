@@ -195,7 +195,9 @@ def test_sitl_stub_raises_honestly():
 def test_baseline_simulation_numbers_unchanged():
     r = simulate_mission()
     assert r.success is True
-    assert 45 <= r.energy_wh <= 50
+    # Latitude-aware geometry corrected field width: ~54 m longer path than
+    # the old fixed m/deg approximation, so energy rose from 47.3 to ~57.8 Wh.
+    assert 54 <= r.energy_wh <= 62
     assert r.terminal_voltage_v == 14.8  # nominal, no sag model
     assert r.sensor_sample == {}
     assert r.revisit_regions == 0

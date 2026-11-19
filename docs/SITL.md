@@ -76,8 +76,10 @@ margin. The CLI's `montecarlo` command exposes this; JSON export is available.
 | Voltage sensor | gaussian, sigma 0.05 V | independent of OCV model |
 
 All realism features are off by default. With defaults, the baseline survey
-numbers (47.3 Wh, 3.8 min, successful RTL) are unchanged; enabling them changes
-results honestly, with no claimed performance improvement.
+numbers were 47.3 Wh / 3.8 min under the old fixed m/deg geometry; after the
+latitude-aware correction (PR 3) the same mission is ~57.8 Wh / 4.6 min with
+successful RTL. Enabling realism changes results honestly, with no claimed
+performance improvement.
 
 ## Verification
 
