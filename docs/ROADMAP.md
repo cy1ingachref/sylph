@@ -18,7 +18,8 @@ done, not what is planned.
 ## Now active (roadmap order)
 
 - **PR 1 (this baseline):** audit docs + verified findings.
-- **PR 2:** safety mode policy (P0.1) and pending-command fixes (P0.2).
+- **PR 2 (done):** safety mode policy (P0.1) and pending-command fixes (P0.2),
+  18 new regression tests.
 - **PR 3:** latitude-aware survey geometry; route completeness; mission states.
 - **PR 4:** deterministic replay scenarios and event log.
 - **PR 5–7:** 3D demo scene, ground-station UI, browser tests.

@@ -4,6 +4,8 @@ live detection map, and battery-aware planning.
 
 from __future__ import annotations
 
+import time
+import uuid
 from dataclasses import dataclass
 from typing import Callable, Iterable
 
@@ -15,6 +17,7 @@ __all__ = [
     "Command",
     "parse_command",
     "CommandInterpreter",
+    "PendingCommand",
     "lawnmower_pattern",
     "LiveDetectionMap",
     "plan_mission",
@@ -51,34 +54,91 @@ def parse_command(utterance: str) -> Command:
     return Command("unknown")
 
 
-class CommandInterpreter:
-    """Gate that requires explicit confirmation before executing any order.
+@dataclass(frozen=True)
+class PendingCommand:
+    """A confirmation candidate bound to one exact command instance."""
 
-    This is the fail-safe: recognizing a command never arms or moves the drone
-    without a separate ``confirm`` call. Disallowed commands (e.g. scouting
-    without a geofence) are rejected regardless of confirmation.
+    command: Command
+    token: str
+    normalized: str
+    created_at_s: float
+
+
+class CommandInterpreter:
+    """Gate requiring confirmation of the *currently displayed* command.
+
+    Safety rules:
+      * any new utterance replaces or clears pending state -- an invalid
+        utterance can never leave an older command executable;
+      * pending commands expire after ``expiry_s``;
+      * confirmation must match the pending token (or exact normalized text),
+        so a generic "yes" cannot execute a different command;
+      * ``safety_check`` is re-run immediately before execution and can veto.
     """
 
-    def __init__(self, executor: Callable[[Command], None]) -> None:
+    def __init__(
+        self,
+        executor: Callable[[Command], None],
+        *,
+        expiry_s: float = 30.0,
+        safety_check: Callable[[], bool] | None = None,
+        clock: Callable[[], float] | None = None,
+    ) -> None:
+        if expiry_s <= 0:
+            raise ValueError("expiry_s must be positive")
         self.executor = executor
-        self.pending: Command | None = None
+        self.expiry_s = expiry_s
+        self.safety_check = safety_check
+        self._clock = clock or time.monotonic
+        self.pending: PendingCommand | None = None
         self.executed: list[Command] = []
 
     def submit(self, utterance: str) -> Command:
+        """Parse an utterance; replace pending state in all cases."""
         cmd = parse_command(utterance)
+        # Always invalidate the previous candidate before deciding the new one.
+        self.pending = None
         if cmd.kind != "unknown":
-            self.pending = cmd
+            self.pending = PendingCommand(
+                command=cmd,
+                token=uuid.uuid4().hex,
+                normalized=" ".join(utterance.lower().strip().split()),
+                created_at_s=self._clock(),
+            )
         return cmd
 
-    def confirm(self, *, allowed: bool = True) -> bool:
-        if self.pending is None:
+    def _live_pending(self) -> PendingCommand | None:
+        p = self.pending
+        if p is None:
+            return None
+        if self._clock() - p.created_at_s > self.expiry_s:
+            self.pending = None
+            return None
+        return p
+
+    def confirm(self, *, allowed: bool = True, token: str | None = None,
+                utterance: str | None = None) -> bool:
+        """Execute only the current, unexpired pending command.
+
+        When ``token`` is supplied it must match. When ``utterance`` is
+        supplied its normalized form must match. One of them is required for
+        strict binding; ``confirm()`` alone remains for backward compatibility
+        but still only ever executes the single current pending command.
+        """
+        p = self._live_pending()
+        if p is None:
             return False
-        cmd = self.pending
-        self.pending = None
-        if not allowed or cmd.kind == "unknown":
+        if token is not None and token != p.token:
             return False
-        self.executor(cmd)
-        self.executed.append(cmd)
+        if utterance is not None and " ".join(utterance.lower().strip().split()) != p.normalized:
+            return False
+        self.pending = None  # single-use: repeated confirm cannot re-execute
+        if not allowed or p.command.kind == "unknown":
+            return False
+        if self.safety_check is not None and not self.safety_check():
+            return False
+        self.executor(p.command)
+        self.executed.append(p.command)
         return True
 
 
