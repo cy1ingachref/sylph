@@ -24,8 +24,8 @@ No frontend exists. No hardware adapter exists. Runtime dependencies: none
 
 | ID | Status | Severity | File / line | Evidence |
 |----|--------|----------|-------------|----------|
-| P0.1 preflight gate | **CONFIRMED** | High | `sylph/safety.py:39` | `safe` returns True with all checks passing even when `simulation=False`; no mode distinction, no hardware authorization field. |
-| P0.2 stale pending command | **CONFIRMED** | High | `sylph/mission.py:67-71` | `submit()` only replaces `pending` when the new command is valid; an invalid utterance leaves the previous command armed for confirmation. No expiry, no confirmation ID. |
+| P0.1 preflight gate | **FIXED** | High | `sylph/safety.py` | Was: `safe` ignored `simulation`. Now: explicit `OperatingMode`, `checks_passed` / `mode_authorized` / `hardware_arm_permitted_now`, stale-telemetry fail-closed, hardware disabled by default. 11 regression tests. |
+| P0.2 stale pending command | **FIXED** | High | `sylph/mission.py` | Was: invalid utterance left prior command executable. Now: every submit invalidates pending, UUID token + normalized-text binding, expiry, pre-execution safety check, single-use confirm. 7 regression tests. |
 | Survey geometry | **CONFIRMED (documented approximation)** | Medium | `sylph/mission.py:102-103` | Longitude uses a fixed 111,320 m/deg, ignoring latitude; documented as mid-latitude approximation, but no latitude-aware test. |
 | Detector stub | **CONFIRMED** | Low (honest) | `sylph/vision.py` | `StubDetector` infers from filenames; it is clearly named and documented as a stub, not real inference. |
 | SITL live validation | **NOT DONE** | High (for flight readiness) | `sylph/mavlink_sitl.py` | Protocol tested with a fake transport only; no live SITL run. |
