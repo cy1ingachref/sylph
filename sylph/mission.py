@@ -155,6 +155,9 @@ class MissionPlan:
     waypoints: list[Waypoint]
     feasible: bool
     reason: str
+    rtl_reserve_wh: float = 0.0
+    required_energy_wh: float = 0.0
+    available_energy_wh: float = 0.0
 
 
 def plan_mission(
@@ -167,25 +170,76 @@ def plan_mission(
     cruise_speed_mps: float,
     cruise_power_w: float,
     safety_margin: float = 0.25,
+    rtl_reserve_wh: float | None = None,
+    rtl_reserve_pct: float | None = None,
 ) -> MissionPlan:
-    """Battery-aware planner: abort early if the route cannot be completed
-    with enough reserve to return home.
+    """Battery-aware planner with an explicit RTL reserve constraint.
+
+    The planner permits only the longest feasible prefix of the route when the
+    full route cannot be flown while keeping ``rtl_reserve_wh`` (or
+    ``rtl_reserve_pct`` of the usable pack) in the battery at all times.
+    ``safety_margin`` inflates route energy consumption as before. If neither
+    reserve argument is given, no explicit reserve is enforced (legacy path).
     """
     if not waypoints:
         return MissionPlan(waypoints=[], feasible=False, reason="no waypoints")
+    if rtl_reserve_wh is not None and rtl_reserve_pct is not None:
+        raise ValueError("pass either rtl_reserve_wh or rtl_reserve_pct, not both")
+    if rtl_reserve_wh is not None and rtl_reserve_wh < 0:
+        raise ValueError("rtl_reserve_wh must be non-negative")
+    if rtl_reserve_pct is not None and not 0 <= rtl_reserve_pct <= 1:
+        raise ValueError("rtl_reserve_pct must be in [0, 1]")
 
-    route = [Waypoint(state.latitude, state.longitude, state.altitude_m), *waypoints]
-    total_m = 0.0
-    for a, b in zip(route, route[1:]):
-        total_m += distance_m(a.latitude, a.longitude, b.latitude, b.longitude)
-    home_m = distance_m(waypoints[-1].latitude, waypoints[-1].longitude, home_lat, home_lon)
-    needed_wh = estimate_return_energy_wh(
-        total_m + home_m, cruise_speed_mps, cruise_power_w
-    ) * (1.0 + safety_margin)
-    available_wh = battery_capacity_wh * (state.battery_pct / 100.0)
-    feasible = available_wh >= needed_wh
+    usable_wh = battery_capacity_wh * (state.battery_pct / 100.0)
+    reserve_wh = (
+        rtl_reserve_wh if rtl_reserve_wh is not None
+        else (usable_wh * rtl_reserve_pct if rtl_reserve_pct is not None else 0.0)
+    )
+    start = Waypoint(state.latitude, state.longitude, state.altitude_m)
+
+    def required_for(prefix: list[Waypoint]) -> float:
+        route = [start, *prefix]
+        distance = sum(
+            distance_m(a.latitude, a.longitude, b.latitude, b.longitude)
+            for a, b in zip(route, route[1:])
+        )
+        last = prefix[-1]
+        home_m = distance_m(last.latitude, last.longitude, home_lat, home_lon)
+        return estimate_return_energy_wh(
+            distance + home_m, cruise_speed_mps, cruise_power_w
+        ) * (1.0 + safety_margin)
+
+    full_required = required_for(waypoints)
+    if full_required <= usable_wh - reserve_wh:
+        return MissionPlan(
+            waypoints=waypoints, feasible=True, reason="feasible",
+            rtl_reserve_wh=reserve_wh, required_energy_wh=full_required,
+            available_energy_wh=usable_wh,
+        )
+
+    if reserve_wh == 0.0:
+        return MissionPlan(
+            waypoints=[], feasible=False,
+            reason="insufficient energy for route + RTL reserve",
+            rtl_reserve_wh=0.0, required_energy_wh=full_required,
+            available_energy_wh=usable_wh,
+        )
+
+    # Find the longest prefix that still preserves the explicit reserve.
+    feasible_prefix: list[Waypoint] = []
+    for i in range(1, len(waypoints) + 1):
+        if required_for(waypoints[:i]) <= usable_wh - reserve_wh:
+            feasible_prefix = waypoints[:i]
+        else:
+            break
     return MissionPlan(
-        waypoints=waypoints if feasible else [],
-        feasible=feasible,
-        reason="feasible" if feasible else "insufficient energy for route + RTL reserve",
+        waypoints=feasible_prefix,
+        feasible=bool(feasible_prefix),
+        reason=(
+            f"trimmed to {len(feasible_prefix)}/{len(waypoints)} waypoints to keep "
+            f"{reserve_wh:.1f} Wh RTL reserve"
+        ),
+        rtl_reserve_wh=reserve_wh,
+        required_energy_wh=required_for(feasible_prefix) if feasible_prefix else full_required,
+        available_energy_wh=usable_wh,
     )

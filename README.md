@@ -42,6 +42,11 @@ Each phase has a Python module under `sylph/` with a matching test file under
 - **Phase 8 — Done:** opt-in battery realism (OCV sag + Peukert), gust/turbulence
   and seeded sensor noise (`sylph/battery.py`, `sylph/sensors.py`), value-region
   revisits, and SITL mission export + swappable FC interface (`sylph/sitl.py`).
+- **Phase 9 — Done:** real MAVLink SITL client with injectable transport
+  (`sylph/mavlink_sitl.py`), camera FOV + probabilistic detection
+  (`sylph/camera.py`), value-of-information revisit decisions (`sylph/voi.py`),
+  Monte-Carlo evaluation (`sylph/monte_carlo.py`), and explicit RTL reserve in
+  the mission planner.
 
 See the [full guide](docs/Autonomous_AI_Scout_Drone_Guide.md) for hardware,
 software stack, model training, smart RTL, and safety/legal details, and
@@ -101,9 +106,34 @@ approximations, not measured cell data; sensor sigmas are consumer-grade
 defaults; revisit value is supplied by the caller (e.g. from a prior flight).
 See `docs/SITL.md` for details.
 
+### Monte-Carlo robustness evaluation
+
+```bash
+python -m sylph.cli montecarlo --runs 50 --seed-start 0
+python -m sylph.cli montecarlo --runs 20 --json
+```
+
+Runs the same mission with different wind/turbulence/sensor seeds and reports
+success rate, energy mean/median/stdev/range, and worst-case RTL margin.
+Results are deterministic for a given seed range.
+
+### MAVLink SITL (explicit opt-in only)
+
+```bash
+python -m sylph.cli export --format wpl --output survey.waypoints \
+    --sitl-host 127.0.0.1 --sitl-port 5762
+```
+
+`MavlinkSitlController` uploads the mission via the standard MISSION_COUNT /
+MISSION_REQUEST_INT / MISSION_ITEM_INT / MISSION_ACK handshake, sets AUTO,
+arms, and receives telemetry through an injectable transport. Protocol logic is
+tested with a fake transport; **a live SITL connection has NOT been run or
+verified in this repository** — validate on a bench before relying on it.
+Without `--sitl-host` the CLI never connects to anything.
+
 ## Status
 
-All eight phases are implemented as pure, hardware-independent decision logic
+All nine phases are implemented as pure, hardware-independent decision logic
 with a passing test suite. **Simulation first:** the modules are ready for SITL
 / Gazebo or AirSim integration and Benchtwin hardware-in-the-loop testing; no
 real flight has been performed. Hardware adapters (pymavlink/MAVSDK, camera,

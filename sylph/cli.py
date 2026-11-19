@@ -6,8 +6,10 @@ import argparse
 import json
 
 from .battery import BatteryModel
+from .camera import Camera, FrameObservation, detection_probability
 from .design import DEFAULT_BOM, size_power_system
 from .mission import lawnmower_pattern
+from .monte_carlo import monte_carlo
 from .optimizer import optimal_grid_spacing, optimal_speed, ValueRegion
 from .simulator import simulate_mission
 from .sitl import MissionItem, write_mavlink_json, write_qgc_wpl, TwinFlightController
@@ -55,6 +57,16 @@ def _build_parser() -> argparse.ArgumentParser:
     e.add_argument("--revisit-lon", type=float, default=None)
     e.add_argument("--revisit-radius", type=float, default=30.0)
     e.add_argument("--revisit-value", type=float, default=0.9)
+    e.add_argument("--sitl-host", default=None, help="explicit SITL host; no connection unless set")
+    e.add_argument("--sitl-port", type=int, default=5762)
+    e.add_argument("--sitl-mode", default="auto")
+
+    m = sub.add_parser("montecarlo", help="evaluate success rate and RTL margin across seeds")
+    m.add_argument("--runs", type=int, default=50)
+    m.add_argument("--seed-start", type=int, default=0)
+    m.add_argument("--gust", type=float, default=2.0)
+    m.add_argument("--turbulence", type=float, default=0.5)
+    m.add_argument("--json", action="store_true")
 
     sub.add_parser("compare", help="optimized vs naive (slow speed, wide spacing) mission")
     return p
@@ -153,6 +165,30 @@ def _export(args: argparse.Namespace) -> int:
     result = fc.execute()
     print(f"Digital-twin dry run: {result['distance_m']:.0f} m, "
           f"{result['energy_wh']:.1f} Wh ({result['backend']})")
+    if args.sitl_host:
+        # Explicit opt-in only: never probe or connect implicitly.
+        from .mavlink_sitl import MavlinkSitlController, PymavlinkTransport
+        transport = PymavlinkTransport(args.sitl_host, args.sitl_port)
+        sitl = MavlinkSitlController(transport, mode=args.sitl_mode)
+        sitl.upload(items)
+        try:
+            sitl_result = sitl.execute()
+            print(f"SITL run: {sitl_result['samples']} telemetry samples, "
+                  f"success={sitl_result['success']}")
+        finally:
+            transport.close()
+    return 0
+
+
+def _montecarlo(args: argparse.Namespace) -> int:
+    r = monte_carlo(
+        runs=args.runs, seed_start=args.seed_start,
+        gust_amplitude_mps=args.gust, turbulence_sigma_mps=args.turbulence,
+    )
+    if args.json:
+        print(json.dumps(r.__dict__, indent=2))
+    else:
+        print(r.to_text())
     return 0
 
 
@@ -180,6 +216,7 @@ def main(argv: list[str] | None = None) -> int:
         "optimize": _optimize,
         "fly": _fly,
         "export": _export,
+        "montecarlo": _montecarlo,
         "compare": _compare,
     }[args.command](args)
 
