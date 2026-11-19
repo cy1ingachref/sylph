@@ -7,6 +7,8 @@ name = "sylph"
 version = "0.1.0"
 description = "Autonomous AI scout drone companion-computer software"
 requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Achref Ferjani", email = "cy1ingachref@gmail.com"}]
 
 [project.optional-dependencies]
 test = ["pytest>=8.0"]
