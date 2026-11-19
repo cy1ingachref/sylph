@@ -5,10 +5,14 @@ from __future__ import annotations
 import argparse
 import json
 
+from .battery import BatteryModel
 from .design import DEFAULT_BOM, size_power_system
-from .optimizer import optimal_grid_spacing, optimal_speed
+from .mission import lawnmower_pattern
+from .optimizer import optimal_grid_spacing, optimal_speed, ValueRegion
 from .simulator import simulate_mission
+from .sitl import MissionItem, write_mavlink_json, write_qgc_wpl, TwinFlightController
 from .twin import DigitalTwin
+from .waypoints import Waypoint
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -30,6 +34,27 @@ def _build_parser() -> argparse.ArgumentParser:
     f.add_argument("--speed", type=float, default=None)
     f.add_argument("--spacing", type=float, default=None)
     f.add_argument("--json", action="store_true")
+    # Opt-in realism (defaults preserve baseline output)
+    f.add_argument("--gust", type=float, default=0.0, help="sinusoidal gust amplitude m/s")
+    f.add_argument("--turbulence", type=float, default=0.0, help="turbulence sigma m/s")
+    f.add_argument("--seed", type=int, default=None, help="seed for turbulence/sensors (reproducible)")
+    f.add_argument("--battery-realism", action="store_true", help="enable OCV sag + Peukert")
+    f.add_argument("--sensor-noise", action="store_true", help="add seeded GPS/baro/voltage noise")
+    f.add_argument("--revisit-lat", type=float, default=None, help="infected-area latitude to revisit")
+    f.add_argument("--revisit-lon", type=float, default=None, help="infected-area longitude to revisit")
+    f.add_argument("--revisit-value", type=float, default=0.9, help="severity/value of the region")
+
+    e = sub.add_parser("export", help="export a survey mission for ArduPilot/PX4 SITL")
+    e.add_argument("--format", choices=["wpl", "mavlink-json"], default="wpl")
+    e.add_argument("--output", default="sylph_mission.waypoints")
+    e.add_argument("--width", type=float, default=300.0)
+    e.add_argument("--height", type=float, default=300.0)
+    e.add_argument("--altitude", type=float, default=20.0)
+    e.add_argument("--spacing", type=float, default=None)
+    e.add_argument("--revisit-lat", type=float, default=None)
+    e.add_argument("--revisit-lon", type=float, default=None)
+    e.add_argument("--revisit-radius", type=float, default=30.0)
+    e.add_argument("--revisit-value", type=float, default=0.9)
 
     sub.add_parser("compare", help="optimized vs naive (slow speed, wide spacing) mission")
     return p
@@ -57,9 +82,21 @@ def _optimize(args: argparse.Namespace) -> int:
 
 
 def _fly(args: argparse.Namespace) -> int:
+    budget = size_power_system()
+    battery = (
+        BatteryModel(nominal_v=budget.voltage_v, capacity_ah=budget.capacity_ah)
+        if args.battery_realism else None
+    )
+    regions = None
+    if args.revisit_lat is not None and args.revisit_lon is not None:
+        regions = [ValueRegion(args.revisit_lat, args.revisit_lon, 30.0, args.revisit_value)]
     r = simulate_mission(
         width_m=args.width, height_m=args.height, altitude_m=args.altitude,
         wind_mps=args.wind, speed_mps=args.speed, spacing_m=args.spacing,
+        gust_amplitude_mps=args.gust, turbulence_sigma_mps=args.turbulence,
+        turbulence_seed=args.seed, battery_model=battery,
+        sensor_seed=args.seed if args.sensor_noise else None,
+        value_regions=regions,
     )
     if args.json:
         print(json.dumps(r.__dict__, indent=2))
@@ -71,10 +108,52 @@ def _fly(args: argparse.Namespace) -> int:
     print(f"  Energy used: {r.energy_wh:.1f} Wh ({r.energy_used_pct:.1f}% of usable)")
     print(f"  Remaining: {r.energy_remaining_wh:.1f} Wh")
     print(f"  Detections: {r.detections} ({r.infected} infected)")
+    if r.terminal_voltage_v is not None:
+        print(f"  Terminal voltage: {r.terminal_voltage_v:.2f} V")
+    if r.sensor_sample:
+        s = r.sensor_sample
+        print(f"  Sensor sample: GPS {s['latitude']:.6f},{s['longitude']:.6f} "
+              f"baro {s['baro_altitude_m']:.2f} m volt {s['voltage_v']:.2f} V")
+    if r.revisit_regions:
+        print(f"  Value revisits: {r.revisit_regions} region(s), +{r.revisit_extra_m:.0f} m")
     for line in r.log:
         print(f"  - {line}")
     print(r.report_text)
     return 0 if r.success else 1
+
+
+def _export(args: argparse.Namespace) -> int:
+    budget = size_power_system()
+    twin = DigitalTwin(budget)
+    sp = args.spacing or optimal_grid_spacing(args.altitude)
+    wps = lawnmower_pattern(
+        36.8, 10.2, width_m=args.width, height_m=args.height,
+        spacing_m=sp, altitude_m=args.altitude,
+    )
+    if args.revisit_lat is not None and args.revisit_lon is not None:
+        from .optimizer import plan_revisits
+        region = ValueRegion(
+            args.revisit_lat, args.revisit_lon, args.revisit_radius, args.revisit_value
+        )
+        combined, _ = plan_revisits(wps, [region], spacing_m=sp)
+        wps = [
+            Waypoint(w.latitude, w.longitude, args.altitude) if w.altitude_m == 0.0 else w
+            for w in combined
+        ]
+    items = [MissionItem(w.latitude, w.longitude, w.altitude_m) for w in wps]
+    out = args.output
+    if args.format == "wpl":
+        path = write_qgc_wpl(items, out)
+    else:
+        path = write_mavlink_json(items, out)
+    print(f"Exported {len(items)} waypoints to {path} ({args.format})")
+    # Sanity-check the adapter round trip without claiming a real SITL flight.
+    fc = TwinFlightController(twin, optimal_speed(twin))
+    fc.upload(items)
+    result = fc.execute()
+    print(f"Digital-twin dry run: {result['distance_m']:.0f} m, "
+          f"{result['energy_wh']:.1f} Wh ({result['backend']})")
+    return 0
 
 
 def _compare(_args: argparse.Namespace | None = None) -> int:
@@ -100,6 +179,7 @@ def main(argv: list[str] | None = None) -> int:
         "design": _design,
         "optimize": _optimize,
         "fly": _fly,
+        "export": _export,
         "compare": _compare,
     }[args.command](args)
 

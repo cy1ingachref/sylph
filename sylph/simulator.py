@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from .battery import BatteryModel
 from .design import PowerBudget, size_power_system
 from .mission import lawnmower_pattern
 from .navigation import distance_m
@@ -11,10 +12,15 @@ from .optimizer import (
     optimal_grid_spacing,
     optimal_speed,
     path_length_m,
+    plan_revisits,
+    revisit_extra_distance_m,
+    ValueRegion,
 )
 from .reporting import build_report
+from .sensors import SensorConfig, SensorSuite
 from .twin import DigitalTwin, Environment, FlightSegment, TwinState
 from .vision import Detection, DetectionStore
+from .waypoints import Waypoint
 
 
 @dataclass
@@ -34,6 +40,11 @@ class SimulationResult:
     success: bool
     report_text: str
     log: list[str] = field(default_factory=list)
+    # Opt-in realism / SITL fields (defaults keep baseline JSON compatible)
+    terminal_voltage_v: float | None = None
+    sensor_sample: dict = field(default_factory=dict)
+    revisit_regions: int = 0
+    revisit_extra_m: float = 0.0
 
 
 def simulate_mission(
@@ -48,10 +59,32 @@ def simulate_mission(
     wind_mps: float = 0.0,
     budget: PowerBudget | None = None,
     detection_rate: float = 0.3,
+    gust_amplitude_mps: float = 0.0,
+    gust_period_s: float = 10.0,
+    turbulence_sigma_mps: float = 0.0,
+    turbulence_seed: int | None = None,
+    battery_model: BatteryModel | None = None,
+    sensor_seed: int | None = None,
+    sensor_config: SensorConfig | None = None,
+    value_regions: list[ValueRegion] | None = None,
+    value_threshold: float = 0.5,
 ) -> SimulationResult:
-    """Fly an optimized grid survey in the digital twin and report results."""
+    """Fly an optimized grid survey in the digital twin and report results.
+
+    All realism features are opt-in; defaults reproduce the baseline exactly.
+    """
     budget = budget or size_power_system()
-    twin = DigitalTwin(budget, environment=Environment(wind_speed_mps=wind_mps))
+    env = Environment(
+        wind_speed_mps=wind_mps,
+        gust_amplitude_mps=gust_amplitude_mps,
+        gust_period_s=gust_period_s,
+        turbulence_sigma_mps=turbulence_sigma_mps,
+        turbulence_seed=turbulence_seed,
+    )
+    twin = DigitalTwin(budget, environment=env, battery_model=battery_model)
+    sensors = (
+        SensorSuite(sensor_config, seed=sensor_seed) if sensor_seed is not None else None
+    )
     v = speed_mps if speed_mps is not None else optimal_speed(twin)
     sp = spacing_m if spacing_m is not None else optimal_grid_spacing(altitude_m)
 
@@ -63,12 +96,31 @@ def simulate_mission(
     # A boustrophedon lawnmower is already the coverage-optimal traversal for
     # a rectangular field: reordering its waypoints would "shorten" the route
     # by skipping rows, i.e. it would cheat on coverage. Keep the order.
-    ordered_wps = wps
+    base_wps = wps
+    selected_regions = []
+    extra_m = 0.0
+    if value_regions:
+        combined, selected_regions = plan_revisits(
+            base_wps, value_regions, spacing_m=sp, value_threshold=value_threshold
+        )
+        # Revisit sub-grid waypoints inherit the survey altitude.
+        extra_m = revisit_extra_distance_m(base_wps, combined)
+        ordered_wps = [
+            Waypoint(w.latitude, w.longitude, altitude_m)
+            if w.altitude_m == 0.0 else w
+            for w in combined
+        ]
+        log_prefix = [
+            f"Value revisits: {len(selected_regions)} region(s), +{extra_m:.0f} m"
+        ]
+    else:
+        ordered_wps = base_wps
+        log_prefix = []
     original = path_length_m(points)
     optimized = original
 
     state = TwinState(energy_remaining_wh=budget.usable_energy_wh)
-    log: list[str] = []
+    log: list[str] = list(log_prefix)
     last = (center_lat, center_lon)
     success = True
     store = DetectionStore()
@@ -112,6 +164,20 @@ def simulate_mission(
         / budget.usable_energy_wh
         * 100.0
     )
+    sensor_sample: dict = {}
+    if sensors is not None:
+        meas = sensors.measure(
+            latitude=last[0], longitude=last[1],
+            altitude_m=altitude_m,
+            voltage_v=state.terminal_voltage_v or budget.voltage_v,
+        )
+        sensor_sample = {
+            "latitude": meas.latitude, "longitude": meas.longitude,
+            "gps_altitude_m": meas.gps_altitude_m,
+            "baro_altitude_m": meas.baro_altitude_m,
+            "voltage_v": meas.voltage_v,
+        }
+
     report = build_report(list(store.detections))
     return SimulationResult(
         speed_mps=v,
@@ -129,4 +195,8 @@ def simulate_mission(
         success=success,
         report_text=report.to_text(),
         log=log,
+        terminal_voltage_v=state.terminal_voltage_v,
+        sensor_sample=sensor_sample,
+        revisit_regions=len(selected_regions),
+        revisit_extra_m=extra_m,
     )
