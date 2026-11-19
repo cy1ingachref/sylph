@@ -29,10 +29,38 @@ lets the mission runner be swapped later:
 
 - `TwinFlightController` — runs the mission through the existing digital twin.
   This is what the CLI uses for its dry run.
-- `SitlFlightController` — an intentional placeholder. It raises
-  `NotImplementedError` so no caller can mistake it for a live ArduPilot/PX4
-  SITL connection. Implementing it means wiring pymavlink/MAVSDK to a SITL
-  endpoint and translating `MissionItem` to `MISSION_ITEM_INT` messages.
+- `MavlinkSitlController` (`sylph/mavlink_sitl.py`) — a real MAVLink client that
+  uploads `MissionItem`s with MISSION_COUNT → MISSION_REQUEST_INT →
+  MISSION_ITEM_INT → MISSION_ACK, sets a mode, arms, and samples GLOBAL_POSITION_INT
+  / VFR_HUD / SYS_STATUS telemetry. It depends on a `MavlinkTransport` protocol;
+  `PymavlinkTransport` implements it with lazy pymavlink import. Protocol flow is
+  tested with a fake transport. **Not run against live SITL in this repo.**
+- `SitlFlightController` — a legacy intentional placeholder that raises
+  `NotImplementedError`. It remains to make the "stub vs real" distinction clear.
+
+`export --sitl-host HOST` is the only path that constructs a live transport;
+no endpoint is probed or connected to implicitly.
+
+## Mission-level RTL reserve
+
+`plan_mission(..., rtl_reserve_wh=Y)` or `rtl_reserve_pct=X` enforces an explicit
+energy reserve *inside the planner*. If the full route would violate it, the
+planner keeps only the longest feasible prefix and reports the trim in
+`MissionPlan.reason`. With no reserve argument, the legacy behaviour is intact.
+
+## Camera and value-of-information
+
+`sylph/camera.py` models footprint (`2·h·tan(FOV/2)`) and a detection probability
+that decreases with altitude and speed and increases with overlap.
+`sylph/voi.py` uses that probability to decide whether a high-value (infected)
+region's expected detections justify the extra energy of a revisit. Constants
+are explicit `VoIConfig` assumptions, not measured economics.
+
+## Monte-Carlo evaluation
+
+`sylph/monte_carlo.py` runs the mission across seeds (wind gusts, turbulence,
+sensor noise) and reports success rate, energy distribution and worst-case RTL
+margin. The CLI's `montecarlo` command exposes this; JSON export is available.
 
 ## Realism assumptions (not measured cell data)
 
