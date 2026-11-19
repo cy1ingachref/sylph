@@ -39,6 +39,9 @@ Each phase has a Python module under `sylph/` with a matching test file under
 - **Phase 6 — Done:** digital twin, physics-based power model, optimizer and
   mission simulator CLI (`sylph/design.py`, `sylph/twin.py`,
   `sylph/optimizer.py`, `sylph/simulator.py`, `sylph/cli.py`).
+- **Phase 8 — Done:** opt-in battery realism (OCV sag + Peukert), gust/turbulence
+  and seeded sensor noise (`sylph/battery.py`, `sylph/sensors.py`), value-region
+  revisits, and SITL mission export + swappable FC interface (`sylph/sitl.py`).
 
 See the [full guide](docs/Autonomous_AI_Scout_Drone_Guide.md) for hardware,
 software stack, model training, smart RTL, and safety/legal details, and
@@ -66,9 +69,41 @@ configurations. The tool uses momentum-theory hover power, a forward-flight
 drag term, wind-adjusted ground speed and 80% depth of discharge; reported
 numbers are simulated estimates, not flight measurements.
 
+### Realism (all opt-in; defaults reproduce the baseline)
+
+```bash
+python -m sylph.cli fly --battery-realism --gust 2 --turbulence 0.5 --seed 42 \
+    --sensor-noise --revisit-lat 36.8005 --revisit-lon 10.2005
+```
+
+- `--battery-realism`: 4S LiPo OCV curve, I·R voltage sag, Peukert derating.
+- `--gust` / `--turbulence`: sinusoidal gust + seeded gaussian wind noise.
+- `--seed`: makes turbulence and sensor streams reproducible.
+- `--sensor-noise`: seeded GPS (position + altitude), barometer and voltage noise.
+- `--revisit-lat/lon/value`: adds a dense sub-grid over a high-value (infected)
+  area **in addition to** the full lawnmower survey — never instead of it.
+
+### SITL mission export (software-only, no flight controller required)
+
+```bash
+python -m sylph.cli export --format wpl      --output survey.waypoints
+python -m sylph.cli export --format mavlink-json --output survey.json
+```
+
+Exports QGC WPL 110 (QGroundControl / Mission Planner) and a MAVLink
+`MISSION_ITEM_INT`-shaped JSON. `FlightController` in `sylph/sitl.py` is the seam
+for swapping in a real ArduPilot/PX4 SITL link. `SitlFlightController` is an
+explicit stub that raises `NotImplementedError` until such a link is built —
+no SITL flight is claimed. The export command runs a digital-twin dry run only.
+
+**Assumptions:** OCV/Peukert/internal-resistance values are typical 4S LiPo
+approximations, not measured cell data; sensor sigmas are consumer-grade
+defaults; revisit value is supplied by the caller (e.g. from a prior flight).
+See `docs/SITL.md` for details.
+
 ## Status
 
-All six phases are implemented as pure, hardware-independent decision logic
+All eight phases are implemented as pure, hardware-independent decision logic
 with a passing test suite. **Simulation first:** the modules are ready for SITL
 / Gazebo or AirSim integration and Benchtwin hardware-in-the-loop testing; no
 real flight has been performed. Hardware adapters (pymavlink/MAVSDK, camera,
