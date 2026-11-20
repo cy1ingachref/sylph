@@ -1,0 +1,338 @@
+{
+  "schema_version": 1,
+  "mode": "simulation",
+  "mission_id": "demo-wind_gust-1",
+  "simulation_notice": "SIMULATION \u2014 NO REAL FLIGHT CONTROL",
+  "vehicle": {
+    "position": {
+      "lat_deg": 36.800359324469994,
+      "lon_deg": 10.200336559003773,
+      "alt_m": 20.0
+    },
+    "heading_deg": 90.0,
+    "speed_mps": 10.0,
+    "battery_pct": 79.73870941511106,
+    "battery_wh": 75.5285055579932,
+    "state": "simulation"
+  },
+  "mission": {
+    "state": "running",
+    "current_waypoint": 10,
+    "waypoints": [
+      {
+        "id": "WP1",
+        "lat_deg": 36.79964067553,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP2",
+        "lat_deg": 36.79964067553,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP3",
+        "lat_deg": 36.799820337765,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP4",
+        "lat_deg": 36.799820337765,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP5",
+        "lat_deg": 36.8,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP6",
+        "lat_deg": 36.8,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP7",
+        "lat_deg": 36.800179662234996,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP8",
+        "lat_deg": 36.800179662234996,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP9",
+        "lat_deg": 36.800359324469994,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP10",
+        "lat_deg": 36.800359324469994,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      }
+    ]
+  },
+  "events": [
+    {
+      "t_s": 0.0,
+      "kind": "takeoff",
+      "detail": "scenario started",
+      "lat_deg": null,
+      "lon_deg": null
+    },
+    {
+      "t_s": 8.897028271812918,
+      "kind": "waypoint_reached",
+      "detail": "WP1",
+      "lat_deg": 36.79964067553,
+      "lon_deg": 10.199663440996225
+    },
+    {
+      "t_s": 17.65544364720205,
+      "kind": "waypoint_reached",
+      "detail": "WP2",
+      "lat_deg": 36.79964067553,
+      "lon_deg": 10.200336559003773
+    },
+    {
+      "t_s": 17.65544364720205,
+      "kind": "detection",
+      "detail": "late_blight",
+      "lat_deg": 36.79964067553,
+      "lon_deg": 10.200336559003773
+    },
+    {
+      "t_s": 20.16185593861371,
+      "kind": "waypoint_reached",
+      "detail": "WP3",
+      "lat_deg": 36.799820337765,
+      "lon_deg": 10.200336559003773
+    },
+    {
+      "t_s": 30.107018875437888,
+      "kind": "waypoint_reached",
+      "detail": "WP4",
+      "lat_deg": 36.799820337765,
+      "lon_deg": 10.199663440996225
+    },
+    {
+      "t_s": 33.33270271842307,
+      "kind": "waypoint_reached",
+      "detail": "WP5",
+      "lat_deg": 36.8,
+      "lon_deg": 10.199663440996225
+    },
+    {
+      "t_s": 47.40748835777224,
+      "kind": "waypoint_reached",
+      "detail": "WP6",
+      "lat_deg": 36.8,
+      "lon_deg": 10.200336559003773
+    },
+    {
+      "t_s": 49.81347654203716,
+      "kind": "waypoint_reached",
+      "detail": "WP7",
+      "lat_deg": 36.800179662234996,
+      "lon_deg": 10.200336559003773
+    },
+    {
+      "t_s": 49.81347654203716,
+      "kind": "detection",
+      "detail": "late_blight",
+      "lat_deg": 36.800179662234996,
+      "lon_deg": 10.200336559003773
+    },
+    {
+      "t_s": 58.805719814842675,
+      "kind": "waypoint_reached",
+      "detail": "WP8",
+      "lat_deg": 36.800179662234996,
+      "lon_deg": 10.199663440996225
+    },
+    {
+      "t_s": 61.54084938527566,
+      "kind": "waypoint_reached",
+      "detail": "WP9",
+      "lat_deg": 36.800359324469994,
+      "lon_deg": 10.199663440996225
+    },
+    {
+      "t_s": 75.43878489042598,
+      "kind": "waypoint_reached",
+      "detail": "WP10",
+      "lat_deg": 36.800359324469994,
+      "lon_deg": 10.200336559003773
+    },
+    {
+      "t_s": 75.43878489042598,
+      "kind": "complete",
+      "detail": "survey finished",
+      "lat_deg": null,
+      "lon_deg": null
+    }
+  ],
+  "detections": [
+    {
+      "id": "DET2",
+      "label": "late_blight",
+      "confidence": 0.8,
+      "severity": 0.2,
+      "lat_deg": 36.79964067553,
+      "lon_deg": 10.200336559003773,
+      "t_s": 17.65544364720205
+    },
+    {
+      "id": "DET7",
+      "label": "late_blight",
+      "confidence": 0.8,
+      "severity": 0.2,
+      "lat_deg": 36.800179662234996,
+      "lon_deg": 10.200336559003773,
+      "t_s": 49.81347654203716
+    }
+  ],
+  "frames": [
+    {
+      "t_s": 0.0,
+      "lat_deg": 36.8,
+      "lon_deg": 10.2,
+      "alt_m": 20.0,
+      "ground_speed_mps": 0.0,
+      "heading_deg": 0.0,
+      "battery_pct": 90.0,
+      "battery_wh": 85.24800000000002,
+      "current_wp": 0,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 8.897028271812918,
+      "lat_deg": 36.79964067553,
+      "lon_deg": 10.199663440996225,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 223.12626660316252,
+      "battery_pct": 88.79312124564139,
+      "battery_wh": 84.10484444387153,
+      "current_wp": 1,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 17.65544364720205,
+      "lat_deg": 36.79964067553,
+      "lon_deg": 10.200336559003773,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 90.0,
+      "battery_pct": 87.60232331956718,
+      "battery_wh": 82.97692064829403,
+      "current_wp": 2,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 20.16185593861371,
+      "lat_deg": 36.799820337765,
+      "lon_deg": 10.200336559003773,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 0.0,
+      "battery_pct": 87.26146514636069,
+      "battery_wh": 82.65405978663286,
+      "current_wp": 3,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 30.107018875437888,
+      "lat_deg": 36.799820337765,
+      "lon_deg": 10.199663440996225,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 270.0,
+      "battery_pct": 85.90888090812204,
+      "battery_wh": 81.37289199617321,
+      "current_wp": 4,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 33.33270271842307,
+      "lat_deg": 36.8,
+      "lon_deg": 10.199663440996225,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 0.0,
+      "battery_pct": 85.47004859152769,
+      "battery_wh": 80.95723002589504,
+      "current_wp": 5,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 47.40748835777224,
+      "lat_deg": 36.8,
+      "lon_deg": 10.200336559003773,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 90.0,
+      "battery_pct": 83.55509117223154,
+      "battery_wh": 79.14338235833773,
+      "current_wp": 6,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 49.81347654203716,
+      "lat_deg": 36.800179662234996,
+      "lon_deg": 10.200336559003773,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 0.0,
+      "battery_pct": 83.22760822682626,
+      "battery_wh": 78.83319051244985,
+      "current_wp": 7,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 58.805719814842675,
+      "lat_deg": 36.800179662234996,
+      "lon_deg": 10.199663440996225,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 270.0,
+      "battery_pct": 82.00357324888031,
+      "battery_wh": 77.67378458133945,
+      "current_wp": 8,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 61.54084938527566,
+      "lat_deg": 36.800359324469994,
+      "lon_deg": 10.199663440996225,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 0.0,
+      "battery_pct": 81.63116573881003,
+      "battery_wh": 77.32104018780086,
+      "current_wp": 9,
+      "mode": "simulation"
+    },
+    {
+      "t_s": 75.43878489042598,
+      "lat_deg": 36.800359324469994,
+      "lon_deg": 10.200336559003773,
+      "alt_m": 20.0,
+      "ground_speed_mps": 10.0,
+      "heading_deg": 90.0,
+      "battery_pct": 79.73870941511106,
+      "battery_wh": 75.5285055579932,
+      "current_wp": 10,
+      "mode": "simulation"
+    }
+  ]
+}

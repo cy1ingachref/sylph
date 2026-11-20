@@ -42,11 +42,14 @@ Each phase has a Python module under `sylph/` with a matching test file under
 - **Phase 8 — Done:** opt-in battery realism (OCV sag + Peukert), gust/turbulence
   and seeded sensor noise (`sylph/battery.py`, `sylph/sensors.py`), value-region
   revisits, and SITL mission export + swappable FC interface (`sylph/sitl.py`).
-- **Phase 9 — Done:** real MAVLink SITL client with injectable transport
+- **Phase 9 — Done:** MAVLink SITL client with injectable transport
   (`sylph/mavlink_sitl.py`), camera FOV + probabilistic detection
   (`sylph/camera.py`), value-of-information revisit decisions (`sylph/voi.py`),
   Monte-Carlo evaluation (`sylph/monte_carlo.py`), and explicit RTL reserve in
   the mission planner.
+- **Roadmap PRs 1–5 — Done:** baseline audit, P0 safety fixes, latitude-aware
+  geometry + mission states, deterministic replay/scenarios, and a **3D
+  simulation-only ground-station demo** under `web/` (`docs/3D_DEMO.md`).
 
 See the [full guide](docs/Autonomous_AI_Scout_Drone_Guide.md) for hardware,
 software stack, model training, smart RTL, and safety/legal details, and
@@ -131,11 +134,22 @@ tested with a fake transport; **a live SITL connection has NOT been run or
 verified in this repository** — validate on a bench before relying on it.
 Without `--sitl-host` the CLI never connects to anything.
 
+### 3D ground-station demo (simulation only)
+
+```bash
+cd web && npm ci && npm run dev    # http://127.0.0.1:8080
+```
+
+The demo renders the deterministic scenario payloads from
+`python -m sylph.cli scenario`. See `docs/3D_DEMO.md`. It never controls real
+hardware and always displays `SIMULATION — NO REAL FLIGHT CONTROL`.
+
 ## Status
 
-All nine phases are implemented as pure, hardware-independent decision logic
-with a passing test suite. **Simulation first:** the modules are ready for SITL
-/ Gazebo or AirSim integration and Benchtwin hardware-in-the-loop testing; no
-real flight has been performed. Hardware adapters (pymavlink/MAVSDK, camera,
-YOLO/TFLite weights) plug into the `DetectionModel` and `TelemetryLink`
-interfaces and are deliberately not committed (see `.gitignore`).
+All nine phases plus roadmap PRs 1–5 are implemented as pure,
+hardware-independent logic with a passing test suite. **Simulation first:**
+the modules are ready for SITL / Gazebo or AirSim integration and Benchtwin
+hardware-in-the-loop testing; no real flight has been performed. Hardware
+adapters (pymavlink/MAVSDK, camera, YOLO/TFLite weights) plug into the
+`DetectionModel` and `TelemetryLink` interfaces and are deliberately not
+committed (see `.gitignore`).
