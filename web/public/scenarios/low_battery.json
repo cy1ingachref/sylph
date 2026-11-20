@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "mode": "simulation",
+  "mission_id": "demo-low_battery-1",
+  "simulation_notice": "SIMULATION \u2014 NO REAL FLIGHT CONTROL",
+  "vehicle": {
+    "position": {
+      "lat_deg": 36.8,
+      "lon_deg": 10.2,
+      "alt_m": 20.0
+    },
+    "heading_deg": 0.0,
+    "speed_mps": 0.0,
+    "battery_pct": 15.0,
+    "battery_wh": 14.208000000000002,
+    "state": "simulation"
+  },
+  "mission": {
+    "state": "running",
+    "current_waypoint": 0,
+    "waypoints": [
+      {
+        "id": "WP1",
+        "lat_deg": 36.79964067553,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP2",
+        "lat_deg": 36.79964067553,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP3",
+        "lat_deg": 36.799820337765,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP4",
+        "lat_deg": 36.799820337765,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP5",
+        "lat_deg": 36.8,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP6",
+        "lat_deg": 36.8,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP7",
+        "lat_deg": 36.800179662234996,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP8",
+        "lat_deg": 36.800179662234996,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP9",
+        "lat_deg": 36.800359324469994,
+        "lon_deg": 10.199663440996225,
+        "alt_m": 20.0
+      },
+      {
+        "id": "WP10",
+        "lat_deg": 36.800359324469994,
+        "lon_deg": 10.200336559003773,
+        "alt_m": 20.0
+      }
+    ]
+  },
+  "events": [
+    {
+      "t_s": 0.0,
+      "kind": "takeoff",
+      "detail": "scenario started",
+      "lat_deg": null,
+      "lon_deg": null
+    },
+    {
+      "t_s": 0.0,
+      "kind": "battery_low",
+      "detail": "battery 15%",
+      "lat_deg": null,
+      "lon_deg": null
+    },
+    {
+      "t_s": 0.0,
+      "kind": "rtl",
+      "detail": "return to launch before survey",
+      "lat_deg": null,
+      "lon_deg": null
+    },
+    {
+      "t_s": 0.0,
+      "kind": "failed",
+      "detail": "mission aborted for low battery",
+      "lat_deg": null,
+      "lon_deg": null
+    }
+  ],
+  "detections": [],
+  "frames": [
+    {
+      "t_s": 0.0,
+      "lat_deg": 36.8,
+      "lon_deg": 10.2,
+      "alt_m": 20.0,
+      "ground_speed_mps": 0.0,
+      "heading_deg": 0.0,
+      "battery_pct": 15.0,
+      "battery_wh": 14.208000000000002,
+      "current_wp": 0,
+      "mode": "simulation"
+    }
+  ]
+}
