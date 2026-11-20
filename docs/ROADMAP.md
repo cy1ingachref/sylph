@@ -23,7 +23,9 @@ done, not what is planned.
 - **PR 3 (done):** latitude-aware survey geometry (local ENU, heading rotation,
   tests at multiple latitudes), route completeness, mission state machine with
   validated/logged transitions and abort priority. 12 new tests; 124 green.
-- **PR 4:** deterministic replay scenarios and event log.
+- **PR 4 (done):** deterministic replay log, scenario fixtures (normal, low
+  battery, wind gust), versioned 3D demo data contract (schema v1), and
+  `scenario` CLI emitting the payload. 8 new tests; 132 green.
 - **PR 5–7:** 3D demo scene, ground-station UI, browser tests.
 - **PR 8:** perception (real pixel-based detector) evaluation plan.
 - **PR 9:** SITL integration against a live process (blocked until available).

@@ -11,6 +11,8 @@ from .design import DEFAULT_BOM, size_power_system
 from .mission import lawnmower_pattern
 from .monte_carlo import monte_carlo
 from .optimizer import optimal_grid_spacing, optimal_speed, ValueRegion
+from .replay import SCHEMA_VERSION, to_demo_payload
+from .scenarios import run_scenario
 from .simulator import simulate_mission
 from .sitl import MissionItem, write_mavlink_json, write_qgc_wpl, TwinFlightController
 from .twin import DigitalTwin
@@ -67,6 +69,11 @@ def _build_parser() -> argparse.ArgumentParser:
     m.add_argument("--gust", type=float, default=2.0)
     m.add_argument("--turbulence", type=float, default=0.5)
     m.add_argument("--json", action="store_true")
+
+    s = sub.add_parser("scenario", help="emit a deterministic demo replay payload (JSON)")
+    s.add_argument("--name", choices=["normal", "low_battery", "wind_gust"], default="normal")
+    s.add_argument("--seed", type=int, default=0)
+    s.add_argument("--output", default=None, help="write payload to file instead of stdout")
 
     sub.add_parser("compare", help="optimized vs naive (slow speed, wide spacing) mission")
     return p
@@ -192,6 +199,25 @@ def _montecarlo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _scenario(args: argparse.Namespace) -> int:
+    log = run_scenario(
+        args.name, seed=args.seed,
+        wind_mps=4.0 if args.name == "wind_gust" else 0.0,
+        gust_amplitude_mps=2.0 if args.name == "wind_gust" else 0.0,
+    )
+    payload = to_demo_payload(log, mission_id=f"demo-{args.name}-{args.seed}")
+    text = json.dumps(payload, indent=2)
+    if args.output:
+        from pathlib import Path
+
+        Path(args.output).write_text(text + "\n", encoding="utf-8")
+        print(f"Wrote {args.output} (schema_version={SCHEMA_VERSION}, "
+              f"{len(payload['frames'])} frames, {len(payload['events'])} events)")
+    else:
+        print(text)
+    return 0
+
+
 def _compare(_args: argparse.Namespace | None = None) -> int:
     opt = simulate_mission()
     naive = simulate_mission(speed_mps=6.0, spacing_m=10.0)
@@ -217,6 +243,7 @@ def main(argv: list[str] | None = None) -> int:
         "fly": _fly,
         "export": _export,
         "montecarlo": _montecarlo,
+        "scenario": _scenario,
         "compare": _compare,
     }[args.command](args)
 
