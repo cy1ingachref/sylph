@@ -1,8 +1,13 @@
 # Sylph roadmap (living document)
 
-Re-evaluated against the code at commit `9670023` on 2026-11-18. See
-`docs/BASELINE.md` for the full evidence. This file tracks what is actually
-done, not what is planned.
+Re-evaluated against the code at commit `9670023` on 2026-11-18, updated after
+the production-readiness work. See `docs/BASELINE.md` for the original evidence.
+This file tracks what is actually done, not what is planned.
+
+Note on numbering: phases 5 and 7 are intentionally absent. Perception work is
+tracked as PR 8 (`docs/PERCEPTION.md`); hardware readiness (phase 7) is gated and
+not implemented (`docs/SAFETY.md`). Numbers stay stable for documentation
+references.
 
 ## Completed
 
@@ -37,9 +42,17 @@ done, not what is planned.
 
 - No physical hardware control or arming path exists. Hardware mode must stay
   disabled.
-- No real image inference: `StubDetector` is filename-based and clearly named.
-- No live SITL validation; only protocol logic with a fake transport.
-- No 3D demo / frontend exists yet.
+- No real image inference is active by default: `StubDetector` is filename-based
+  and clearly named. An optional weights-backed detector exists but needs
+  externally obtained weights (see `docs/PERCEPTION.md`).
+- No live SITL validation has been run in this repository. The MAVLink client is
+  protocol-tested with a fake transport; a bench script is provided but must be
+  run where SITL is installed (see `docs/SITL.md`).
+- No real-flight data calibration: energy, detection and noise models are
+  documented assumptions, not measured values.
+
+The 3D demo IS implemented and live under `web/` (see PR 5–7 above and
+`docs/3D_DEMO.md`). It is simulation-only by design.
 
 ## Definition of done for each PR
 
