@@ -27,6 +27,12 @@ Flight Controller           (stabilization, GPS, RTH, failsafes)
 Each phase has a Python module under `sylph/` with a matching test file under
 `tests/`, gated by GitHub Actions CI on Python 3.10–3.12.
 
+Note on numbering: phases 5 and 7 do not exist as separate milestones. They
+were planned for perception and hardware readiness in the original guide;
+perception is tracked under PR 8 / `docs/PERCEPTION.md`, and hardware readiness
+is deliberately gated and not implemented (see `docs/SAFETY.md`). The existing
+phase numbers are kept stable to avoid breaking documentation references.
+
 - **Phase 0 — Done:** safety/preflight gate (`sylph/safety.py`), CI scaffolding.
 - **Phase 1 — Done:** telemetry link abstraction (`sylph/link.py`), smart RTL
   energy logic and waypoint runner (`sylph/navigation.py`, `sylph/waypoints.py`).

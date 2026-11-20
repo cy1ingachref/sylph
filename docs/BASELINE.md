@@ -1,12 +1,14 @@
 # Sylph baseline audit (2026-11-18)
 
 This is a fresh verification, not a restatement of the static roadmap review.
+The counts below are the state AT THE AUDIT (94 tests). The latest state is
+recorded in `docs/ROADMAP.md` and measured in CI.
 
 ## Environment and commands
 
 - Branch/commit at audit: `main` @ `9670023781d38b0bf17db8264f8cded61cf569ca`
 - Python 3.11.15, pytest 9.1.1
-- `python -m pytest tests/ -q` -> **94 passed**
+- `python -m pytest tests/ -q` -> **94 passed at audit** (now 132+; see ROADMAP)
 - CI workflow: `.github/workflows/ci.yml`, Python 3.10 / 3.11 / 3.12
 
 ## Confirmed architecture
@@ -16,9 +18,11 @@ Mission flow: `CommandInterpreter` (voice/high-level order with confirm gate)
 `DigitalTwin` (wind, battery, sensors) or MAVLink SITL transport ->
 `DetectionStore` / `LiveDetectionMap` -> `build_report` / Monte-Carlo.
 
-Modules: `sylph/` has 17 Python modules; `tests/` has 9 test files.
-No frontend exists. No hardware adapter exists. Runtime dependencies: none
-(pure stdlib); `pytest` is the only test dependency.
+Modules at audit: `sylph/` had 17 Python modules and `tests/` 9 test files.
+Runtime dependencies: none (pure stdlib); `pytest` test dependency.
+Updated state: 22+ modules including `mission_state.py`, `replay.py`,
+`scenarios.py`; a simulation-only 3D frontend exists under `web/`
+(`docs/3D_DEMO.md`). Still no hardware adapter.
 
 ## Verified issue list
 
@@ -32,18 +36,20 @@ No frontend exists. No hardware adapter exists. Runtime dependencies: none
 
 ## Incomplete / simulated-only features
 
-- `StubDetector`: filename-based demo detector, not image inference.
-- `SitlFlightController`: intentional `NotImplementedError` stub.
-- `MavlinkSitlController`: real protocol implementation, but **not live-tested**.
+- `StubDetector`: filename-based demo detector, not image inference (optional
+  real detector added later; see `docs/PERCEPTION.md`).
+- `MavlinkSitlController`: real protocol implementation, but **not live-tested**
+  in this repo; bench script added later (see `docs/SITL.md`).
 - Camera/VoI probabilities: documented assumptions, not calibrated from data.
 - Monte-Carlo: deterministic digital-twin runs, not flight statistics.
-- 3D demo: does not exist.
+- 3D demo: absent at audit; now implemented and simulation-only (`web/`).
 
 ## Mission lifecycle
 
-There is no explicit mission state machine yet; states are implicit in the
-simulator loop (`success`, `log`) and `MissionPlan`. Abort/RTL has priority in
-the twin when energy is depleted, but there is no typed transition log.
+At audit, there was no explicit mission state machine. A validated, logged
+`MissionStateMachine` with abort priority was added in roadmap PR 3
+(`sylph/mission_state.py`); states in the twin remain implicit in its success
+flag and event log.
 
 ## Next smallest high-value task
 
