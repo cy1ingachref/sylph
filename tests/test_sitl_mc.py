@@ -1,11 +1,10 @@
 """Phase 9 tests: MAVLink SITL protocol, camera model, VoI, Monte-Carlo, RTL reserve."""
 
-import json
 import random
 
 import pytest
 
-from sylph.camera import Camera, FrameObservation, detection_probability, detect_frame
+from sylph.camera import Camera, FrameObservation, detect_frame, detection_probability
 from sylph.link import VehicleState
 from sylph.mavlink_sitl import MavlinkSitlController, VehicleTelemetry
 from sylph.mission import plan_mission
@@ -14,7 +13,6 @@ from sylph.optimizer import ValueRegion
 from sylph.sitl import MissionItem
 from sylph.voi import VoIConfig, evaluate_revisit
 from sylph.waypoints import Waypoint
-
 
 # --- MAVLink SITL protocol (fake transport, no live endpoint) ---------------
 

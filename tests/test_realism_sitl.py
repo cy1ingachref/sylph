@@ -11,20 +11,18 @@ from sylph.optimizer import (
     ValueRegion,
     plan_revisits,
     revisit_extra_distance_m,
-    optimal_speed,
 )
 from sylph.sensors import SensorConfig, SensorSuite
 from sylph.simulator import simulate_mission
 from sylph.sitl import (
     MissionItem,
+    SitlFlightController,
+    TwinFlightController,
     to_mavlink_json,
     to_qgc_wpl,
-    TwinFlightController,
-    SitlFlightController,
 )
 from sylph.twin import DigitalTwin, Environment, FlightSegment, TwinState
 from sylph.waypoints import Waypoint
-
 
 # --- battery ---------------------------------------------------------------
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import math
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from .battery import BatteryModel, BatteryState
 from .design import PowerBudget
@@ -131,10 +131,17 @@ class DigitalTwin:
             # climb power derived from hover power via thrust-to-weight ~1 in hover
             hover_thrust_power = self.budget.hover_power_w
             climb = hover_thrust_power * (climb_rate_mps / max(airspeed_mps, 1.0))
-        total = self.budget.hover_power_w + forward + climb / self.climb_efficiency + self.budget.avionics_power_w
+        total = (
+            self.budget.hover_power_w
+            + forward
+            + climb / self.climb_efficiency
+            + self.budget.avionics_power_w
+        )
         return total
 
-    def ground_speed(self, airspeed_mps: float, heading_into_wind: float = 1.0, *, time_s: float = 0.0) -> float:
+    def ground_speed(
+        self, airspeed_mps: float, heading_into_wind: float = 1.0, *, time_s: float = 0.0
+    ) -> float:
         """Signed ground speed; wind component = wind_at(t) * heading_into_wind."""
         gs = airspeed_mps - self.env.wind_at(time_s) * heading_into_wind
         return max(gs, 0.1)  # never stall to zero in the model
@@ -179,7 +186,9 @@ class DigitalTwin:
             terminal_voltage_v=terminal_v,
         )
 
-    def fly(self, state: TwinState, segment: FlightSegment, *, into_wind: float = 1.0) -> SegmentResult:
+    def fly(
+        self, state: TwinState, segment: FlightSegment, *, into_wind: float = 1.0
+    ) -> SegmentResult:
         """Apply a segment to the state in place (energy/time accounting)."""
         r = self.simulate_segment(state, segment, into_wind=into_wind)
         if r.energy_wh >= state.energy_remaining_wh:

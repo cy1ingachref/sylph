@@ -13,8 +13,8 @@ ASSUMPTIONS (documented, not measured):
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 __all__ = ["BatteryState", "BatteryModel", "OCV_4S", "interpolate_ocv"]
 

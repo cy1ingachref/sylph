@@ -34,7 +34,7 @@ class Camera:
         if not 0 <= self.base_detection_p <= 1:
             raise ValueError("base_detection_p must be in [0, 1]")
 
-    def footprint(self, altitude_m: float) -> "Footprint":
+    def footprint(self, altitude_m: float) -> Footprint:
         """Ground footprint of a nadir frame at ``altitude_m``."""
         if altitude_m <= 0:
             raise ValueError("altitude_m must be positive")

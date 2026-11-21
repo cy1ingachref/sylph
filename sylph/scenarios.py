@@ -14,7 +14,6 @@ from .design import size_power_system
 from .navigation import distance_m
 from .replay import MissionEvent, ReplayLog, TelemetryFrame
 from .twin import DigitalTwin, Environment, FlightSegment, TwinState
-from .waypoints import Waypoint
 
 
 def _grid(lat=36.8, lon=10.2, rows=4, spacing_m=20.0, width_m=60.0, alt_m=20.0):

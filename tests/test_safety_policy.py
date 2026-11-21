@@ -2,7 +2,7 @@
 
 import pytest
 
-from sylph.mission import CommandInterpreter, Command
+from sylph.mission import Command, CommandInterpreter
 from sylph.safety import (
     OperatingMode,
     PreflightError,

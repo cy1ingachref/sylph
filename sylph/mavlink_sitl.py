@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Any, Protocol
 
 from .sitl import MissionItem
 
@@ -61,8 +61,8 @@ class PymavlinkTransport:
     def __init__(self, host: str = "127.0.0.1", port: int = 5762) -> None:
         self.host = host
         self.port = port
-        self._conn = None
-        self._mav = None
+        self._conn: Any = None
+        self._mav: Any = None
 
     def connect(self, timeout_s: float = 10.0) -> None:
         from pymavlink import mavutil  # lazy: CI does not need pymavlink
@@ -149,7 +149,10 @@ class PymavlinkTransport:
         if msg is None:
             return None
         hb = self._conn.recv_match(type="HEARTBEAT", blocking=False)
-        armed = bool(hb and (getattr(hb, "base_mode", 0) & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED))
+        armed = bool(
+            hb
+            and (getattr(hb, "base_mode", 0) & mavutil.mavlink.MAV_MODE_FLAG_SAFETY_ARMED)
+        )
         if msg.get_type() == "GLOBAL_POSITION_INT":
             return VehicleTelemetry(
                 latitude=msg.lat / 1e7, longitude=msg.lon / 1e7,

@@ -70,12 +70,16 @@ class ReplayLog:
         p.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
         return p
 
-    def to_demo_payload(self, *, mode: str = "simulation", mission_id: str = "demo-field-001") -> dict:
+    def to_demo_payload(
+        self, *, mode: str = "simulation", mission_id: str = "demo-field-001"
+    ) -> dict:
         """Build the versioned payload consumed by the 3D demo renderer."""
         return to_demo_payload(self, mode=mode, mission_id=mission_id)
 
 
-def to_demo_payload(log: ReplayLog, *, mode: str = "simulation", mission_id: str = "demo-field-001") -> dict:
+def to_demo_payload(
+    log: ReplayLog, *, mode: str = "simulation", mission_id: str = "demo-field-001"
+) -> dict:
     """Versioned state model. Missing values are never silently zeroed."""
     if not log.frames:
         raise ValueError("cannot export an empty replay log")

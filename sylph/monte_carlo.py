@@ -69,7 +69,11 @@ def monte_carlo(
     # RTL margin = energy remaining after landing attempt; failed runs have 0.
     margins = [r.energy_remaining_wh if r.success else 0.0 for r in results]
     usable = mission_kwargs.get("budget") or size_power_system()
-    usable_wh = usable.usable_energy_wh if hasattr(usable, "usable_energy_wh") else results[0].energy_remaining_wh + results[0].energy_wh
+    usable_wh = (
+        usable.usable_energy_wh
+        if hasattr(usable, "usable_energy_wh")
+        else results[0].energy_remaining_wh + results[0].energy_wh
+    )
     return MonteCarloResult(
         runs=runs,
         successes=successes,

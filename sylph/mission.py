@@ -6,8 +6,8 @@ from __future__ import annotations
 
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable, Iterable
 
 from .link import VehicleState
 from .navigation import distance_m, estimate_return_energy_wh

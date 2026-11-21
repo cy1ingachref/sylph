@@ -11,7 +11,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .camera import Camera, FrameObservation, detection_probability
-from .navigation import distance_m
 from .optimizer import ValueRegion, plan_revisits, revisit_extra_distance_m
 
 __all__ = ["VoIConfig", "VoIDecision", "evaluate_revisit"]
