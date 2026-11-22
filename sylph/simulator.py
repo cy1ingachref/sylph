@@ -9,12 +9,12 @@ from .design import PowerBudget, size_power_system
 from .mission import lawnmower_pattern
 from .navigation import distance_m
 from .optimizer import (
+    ValueRegion,
     optimal_grid_spacing,
     optimal_speed,
     path_length_m,
     plan_revisits,
     revisit_extra_distance_m,
-    ValueRegion,
 )
 from .reporting import build_report
 from .sensors import SensorConfig, SensorSuite
@@ -97,7 +97,7 @@ def simulate_mission(
     # a rectangular field: reordering its waypoints would "shorten" the route
     # by skipping rows, i.e. it would cheat on coverage. Keep the order.
     base_wps = wps
-    selected_regions = []
+    selected_regions: list[ValueRegion] = []
     extra_m = 0.0
     if value_regions:
         combined, selected_regions = plan_revisits(

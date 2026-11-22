@@ -117,7 +117,7 @@ class PreflightReport:
             and not self.telemetry_stale
         )
 
-    def invalidated(self, reason: str) -> "PreflightReport":
+    def invalidated(self, reason: str) -> PreflightReport:
         """Return a fail-closed copy after a safety condition changes post-arm."""
         return replace(
             self,

@@ -4,14 +4,13 @@ import pytest
 
 from sylph.link import VehicleState
 from sylph.mission import (
-    meters_per_degree_lon,
     lawnmower_pattern,
+    meters_per_degree_lon,
     plan_mission,
 )
 from sylph.mission_state import MissionState, MissionStateError, MissionStateMachine
 from sylph.navigation import distance_m
 from sylph.waypoints import Waypoint
-
 
 # --- geometry ----------------------------------------------------------------
 

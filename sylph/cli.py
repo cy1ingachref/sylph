@@ -4,19 +4,39 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
+import sys
+from collections.abc import Callable
 
 from .battery import BatteryModel
-from .camera import Camera, FrameObservation, detection_probability
 from .design import DEFAULT_BOM, size_power_system
 from .mission import lawnmower_pattern
 from .monte_carlo import monte_carlo
-from .optimizer import optimal_grid_spacing, optimal_speed, ValueRegion
+from .optimizer import ValueRegion, optimal_grid_spacing, optimal_speed
 from .replay import SCHEMA_VERSION, to_demo_payload
 from .scenarios import run_scenario
 from .simulator import simulate_mission
-from .sitl import MissionItem, write_mavlink_json, write_qgc_wpl, TwinFlightController
+from .sitl import MissionItem, TwinFlightController, write_mavlink_json, write_qgc_wpl
 from .twin import DigitalTwin
 from .waypoints import Waypoint
+
+__all__ = ["main", "configure_logging"]
+
+LOG = logging.getLogger("sylph.cli")
+
+
+def configure_logging(*, verbose: bool = False) -> None:
+    """Structured CLI logging to stdout (JSON-friendly format preserved).
+
+    User-facing CLI output remains on stdout so existing scripts and tests
+    that parse it keep working; diagnostics use the standard logging module.
+    """
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    LOG.handlers.clear()
+    LOG.addHandler(handler)
+    LOG.setLevel(logging.DEBUG if verbose else logging.INFO)
+    LOG.propagate = False
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -41,11 +61,20 @@ def _build_parser() -> argparse.ArgumentParser:
     # Opt-in realism (defaults preserve baseline output)
     f.add_argument("--gust", type=float, default=0.0, help="sinusoidal gust amplitude m/s")
     f.add_argument("--turbulence", type=float, default=0.0, help="turbulence sigma m/s")
-    f.add_argument("--seed", type=int, default=None, help="seed for turbulence/sensors (reproducible)")
+    f.add_argument(
+        "--seed", type=int, default=None,
+        help="seed for turbulence/sensors (reproducible)",
+    )
     f.add_argument("--battery-realism", action="store_true", help="enable OCV sag + Peukert")
     f.add_argument("--sensor-noise", action="store_true", help="add seeded GPS/baro/voltage noise")
-    f.add_argument("--revisit-lat", type=float, default=None, help="infected-area latitude to revisit")
-    f.add_argument("--revisit-lon", type=float, default=None, help="infected-area longitude to revisit")
+    f.add_argument(
+        "--revisit-lat", type=float, default=None,
+        help="infected-area latitude to revisit",
+    )
+    f.add_argument(
+        "--revisit-lon", type=float, default=None,
+        help="infected-area longitude to revisit",
+    )
     f.add_argument("--revisit-value", type=float, default=0.9, help="severity/value of the region")
 
     e = sub.add_parser("export", help="export a survey mission for ArduPilot/PX4 SITL")
@@ -81,13 +110,13 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _design(_args: argparse.Namespace | None = None) -> int:
     b = size_power_system()
-    print(f"BOM mass: {DEFAULT_BOM.total_mass_g} g, cost: ${DEFAULT_BOM.total_cost_usd}")
+    LOG.info(f"BOM mass: {DEFAULT_BOM.total_mass_g} g, cost: ${DEFAULT_BOM.total_cost_usd}")
     for name, qty, mass, cost in DEFAULT_BOM.as_rows():
-        print(f"  {name}: x{qty}, {mass} g, ${cost}")
-    print(f"Pack: {b.voltage_v} V x {b.capacity_ah} Ah = {b.pack_energy_wh:.1f} Wh")
-    print(f"Usable (80% DoD): {b.usable_energy_wh:.1f} Wh")
-    print(f"Hover power: {b.hover_power_w:.1f} W (+ avionics {b.avionics_power_w:.1f} W)")
-    print(f"Estimated hover endurance: {b.estimated_hover_minutes:.1f} min")
+        LOG.info(f"  {name}: x{qty}, {mass} g, ${cost}")
+    LOG.info(f"Pack: {b.voltage_v} V x {b.capacity_ah} Ah = {b.pack_energy_wh:.1f} Wh")
+    LOG.info(f"Usable (80% DoD): {b.usable_energy_wh:.1f} Wh")
+    LOG.info(f"Hover power: {b.hover_power_w:.1f} W (+ avionics {b.avionics_power_w:.1f} W)")
+    LOG.info(f"Estimated hover endurance: {b.estimated_hover_minutes:.1f} min")
     return 0
 
 
@@ -95,8 +124,11 @@ def _optimize(args: argparse.Namespace) -> int:
     twin = DigitalTwin(size_power_system())
     v = optimal_speed(twin)
     sp = optimal_grid_spacing(args.altitude, camera_fov_deg=args.fov, overlap_fraction=args.overlap)
-    print(f"Optimal cruise speed: {v:.2f} m/s ({v * 3.6:.1f} km/h)")
-    print(f"Optimal grid spacing at {args.altitude:.0f} m (FOV {args.fov:.0f}deg, {args.overlap:.0%} overlap): {sp:.2f} m")
+    LOG.info(f"Optimal cruise speed: {v:.2f} m/s ({v * 3.6:.1f} km/h)")
+    LOG.info(
+        f"Optimal grid spacing at {args.altitude:.0f} m "
+        f"(FOV {args.fov:.0f}deg, {args.overlap:.0%} overlap): {sp:.2f} m"
+    )
     return 0
 
 
@@ -118,26 +150,32 @@ def _fly(args: argparse.Namespace) -> int:
         value_regions=regions,
     )
     if args.json:
-        print(json.dumps(r.__dict__, indent=2))
+        LOG.info(json.dumps(r.__dict__, indent=2))
         return 0 if r.success else 1
-    print(f"Sylph survey simulation: {'SUCCESS' if r.success else 'FAILED'}")
-    print(f"  Speed: {r.speed_mps:.2f} m/s, spacing: {r.spacing_m:.2f} m, waypoints: {r.waypoints}")
-    print(f"  Survey path: {r.original_route_m:.0f} m ({r.waypoints} waypoints, lawnmower coverage)")
-    print(f"  Flew: {r.distance_m:.0f} m in {r.time_s / 60:.1f} min")
-    print(f"  Energy used: {r.energy_wh:.1f} Wh ({r.energy_used_pct:.1f}% of usable)")
-    print(f"  Remaining: {r.energy_remaining_wh:.1f} Wh")
-    print(f"  Detections: {r.detections} ({r.infected} infected)")
+    LOG.info(f"Sylph survey simulation: {'SUCCESS' if r.success else 'FAILED'}")
+    LOG.info(
+        f"  Speed: {r.speed_mps:.2f} m/s, spacing: {r.spacing_m:.2f} m, "
+        f"waypoints: {r.waypoints}"
+    )
+    LOG.info(
+        f"  Survey path: {r.original_route_m:.0f} m "
+        f"({r.waypoints} waypoints, lawnmower coverage)"
+    )
+    LOG.info(f"  Flew: {r.distance_m:.0f} m in {r.time_s / 60:.1f} min")
+    LOG.info(f"  Energy used: {r.energy_wh:.1f} Wh ({r.energy_used_pct:.1f}% of usable)")
+    LOG.info(f"  Remaining: {r.energy_remaining_wh:.1f} Wh")
+    LOG.info(f"  Detections: {r.detections} ({r.infected} infected)")
     if r.terminal_voltage_v is not None:
-        print(f"  Terminal voltage: {r.terminal_voltage_v:.2f} V")
+        LOG.info(f"  Terminal voltage: {r.terminal_voltage_v:.2f} V")
     if r.sensor_sample:
         s = r.sensor_sample
-        print(f"  Sensor sample: GPS {s['latitude']:.6f},{s['longitude']:.6f} "
+        LOG.info(f"  Sensor sample: GPS {s['latitude']:.6f},{s['longitude']:.6f} "
               f"baro {s['baro_altitude_m']:.2f} m volt {s['voltage_v']:.2f} V")
     if r.revisit_regions:
-        print(f"  Value revisits: {r.revisit_regions} region(s), +{r.revisit_extra_m:.0f} m")
+        LOG.info(f"  Value revisits: {r.revisit_regions} region(s), +{r.revisit_extra_m:.0f} m")
     for line in r.log:
-        print(f"  - {line}")
-    print(r.report_text)
+        LOG.info(f"  - {line}")
+    LOG.info(r.report_text)
     return 0 if r.success else 1
 
 
@@ -165,12 +203,12 @@ def _export(args: argparse.Namespace) -> int:
         path = write_qgc_wpl(items, out)
     else:
         path = write_mavlink_json(items, out)
-    print(f"Exported {len(items)} waypoints to {path} ({args.format})")
+    LOG.info(f"Exported {len(items)} waypoints to {path} ({args.format})")
     # Sanity-check the adapter round trip without claiming a real SITL flight.
     fc = TwinFlightController(twin, optimal_speed(twin))
     fc.upload(items)
     result = fc.execute()
-    print(f"Digital-twin dry run: {result['distance_m']:.0f} m, "
+    LOG.info(f"Digital-twin dry run: {result['distance_m']:.0f} m, "
           f"{result['energy_wh']:.1f} Wh ({result['backend']})")
     if args.sitl_host:
         # Explicit opt-in only: never probe or connect implicitly.
@@ -180,7 +218,7 @@ def _export(args: argparse.Namespace) -> int:
         sitl.upload(items)
         try:
             sitl_result = sitl.execute()
-            print(f"SITL run: {sitl_result['samples']} telemetry samples, "
+            LOG.info(f"SITL run: {sitl_result['samples']} telemetry samples, "
                   f"success={sitl_result['success']}")
         finally:
             transport.close()
@@ -193,9 +231,9 @@ def _montecarlo(args: argparse.Namespace) -> int:
         gust_amplitude_mps=args.gust, turbulence_sigma_mps=args.turbulence,
     )
     if args.json:
-        print(json.dumps(r.__dict__, indent=2))
+        LOG.info(json.dumps(r.__dict__, indent=2))
     else:
-        print(r.to_text())
+        LOG.info(r.to_text())
     return 0
 
 
@@ -211,33 +249,39 @@ def _scenario(args: argparse.Namespace) -> int:
         from pathlib import Path
 
         Path(args.output).write_text(text + "\n", encoding="utf-8")
-        print(f"Wrote {args.output} (schema_version={SCHEMA_VERSION}, "
+        LOG.info(f"Wrote {args.output} (schema_version={SCHEMA_VERSION}, "
               f"{len(payload['frames'])} frames, {len(payload['events'])} events)")
     else:
-        print(text)
+        LOG.info(text)
     return 0
 
 
 def _compare(_args: argparse.Namespace | None = None) -> int:
     opt = simulate_mission()
     naive = simulate_mission(speed_mps=6.0, spacing_m=10.0)
-    print("Optimized vs naive survey (same 300x300 m field):")
-    print(f"  {'':12} {'speed':>8} {'spacing':>9} {'route m':>9} {'time min':>9} {'Wh':>7} {'ok':>5}")
+    LOG.info("Optimized vs naive survey (same 300x300 m field):")
+    LOG.info(
+        f"  {'':12} {'speed':>8} {'spacing':>9} "
+        f"{'route m':>9} {'time min':>9} {'Wh':>7} {'ok':>5}"
+    )
     for label, r in (("optimized", opt), ("naive", naive)):
-        print(
+        LOG.info(
             f"  {label:12} {r.speed_mps:8.2f} {r.spacing_m:9.2f} "
             f"{r.optimized_route_m:9.0f} {r.time_s / 60:9.1f} "
             f"{r.energy_wh:7.1f} {str(r.success):>5}"
         )
     if not opt.success:
-        print("Optimized mission did not complete")
+        LOG.info("Optimized mission did not complete")
         return 1
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _build_parser().parse_args(argv)
-    return {
+    parser = _build_parser()
+    parser.add_argument("--verbose", action="store_true", help="enable debug logging")
+    args = parser.parse_args(argv)
+    configure_logging(verbose=bool(getattr(args, "verbose", False)))
+    dispatch: dict[str, Callable[[argparse.Namespace], int]] = {
         "design": _design,
         "optimize": _optimize,
         "fly": _fly,
@@ -245,7 +289,8 @@ def main(argv: list[str] | None = None) -> int:
         "montecarlo": _montecarlo,
         "scenario": _scenario,
         "compare": _compare,
-    }[args.command](args)
+    }
+    return dispatch[args.command](args)
 
 
 if __name__ == "__main__":  # pragma: no cover
